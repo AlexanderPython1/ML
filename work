@@ -1,0 +1,34 @@
+import cv2  
+import numpy as np  
+from scipy.ndimage import gaussian_filter  
+
+def apply_gaussian_blur(frame, sigma=1):  
+    return gaussian_filter(frame, sigma=sigma)  
+ 
+input_file = ''  
+output_file = ''   
+
+cap = cv2.VideoCapture(input_file)  
+  
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))  
+fps = cap.get(cv2.CAP_PROP_FPS)  
+  
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  
+out = cv2.VideoWriter(output_file, fourcc, fps, (frame_width, frame_height))  
+
+while True:  
+    ret, frame = cap.read()  
+    
+    if not ret:  
+        break   
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  
+    frame = apply_gaussian_blur(frame, sigma=2)    
+    frame = np.uint8(frame)  
+    out.write(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))  
+ 
+cap.release()  
+out.release()  
+cv2.destroyAllWindows()  
+
+print(f"Обработка видео завершена! Выходной файл: {output_file}")
