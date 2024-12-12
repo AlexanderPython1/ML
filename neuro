@@ -1,0 +1,97 @@
+import numpy as np  
+import mnist  
+from sklearn.model_selection import train_test_split  
+ 
+np.random.seed(67)  
+
+ 
+def load_data():  
+    X = mnist.train_images().astype(np.float32) / 255.0    
+    y = mnist.train_labels()  
+    X = X.reshape(X.shape[0], -1)   
+    return train_test_split(X, y, test_size=0.2, random_state=42)  
+
+  
+X_train, X_test, y_train, y_test = load_data()  
+
+
+input_size = X_train.shape[1]  
+hidden_size = 64 
+num_classes = 10   
+epochs = 10  
+learning_rate = 0.01  
+l1_lambda = 0.001  
+l2_lambda = 0.001  
+batch_size = 32  
+
+ 
+W1 = np.random.randn(input_size, hidden_size) * 0.01  
+b1 = np.zeros((1, hidden_size))  
+W2 = np.random.randn(hidden_size, num_classes) * 0.01  
+b2 = np.zeros((1, num_classes))  
+  
+def relu(x):  
+    return np.maximum(0, x)  
+
+# Функция активации Softmax  
+def softmax(x):  
+    exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))  
+    return exp_x / np.sum(exp_x, axis=1, keepdims=True)  
+
+
+def forward(X):  
+    z1 = np.dot(X, W1) + b1  
+    a1 = relu(z1)  
+    z2 = np.dot(a1, W2) + b2  
+    return softmax(z2), a1  
+
+ 
+def compute_loss(y_true, y_pred):  
+    m = y_true.shape[0]  
+    loss = -np.sum(np.log(y_pred[np.arange(m), y_true])) / m  
+    l2_reg = l2_lambda * (np.sum(W1 ** 2) + np.sum(W2 ** 2)) / 2  
+    l1_reg = l1_lambda * (np.sum(np.abs(W1)) + np.sum(np.abs(W2)))  
+    return loss + l1_reg + l2_reg   
+def backward(X, y_true, y_pred, a1):  
+    m = y_true.size  
+    y_one_hot = np.zeros((m, num_classes))  
+    y_one_hot[np.arange(m), y_true] = 1  
+    
+    dz2 = y_pred - y_one_hot  
+    dW2 = np.dot(a1.T, dz2) / m + l2_lambda * W2 + l1_lambda * np.sign(W2)  
+    db2 = np.sum(dz2, axis=0, keepdims=True) / m  
+
+    dz1 = np.dot(dz2, W2.T) * (a1 > 0)   
+    dW1 = np.dot(X.T, dz1) / m + l2_lambda * W1 + l1_lambda * np.sign(W1)  
+    db1 = np.sum(dz1, axis=0, keepdims=True) / m  
+
+    return dW1, db1, dW2, db2  
+
+for epoch in range(epochs):  
+    for i in range(0, X_train.shape[0], batch_size):  
+        X_batch = X_train[i:i + batch_size]  
+        y_batch = y_train[i:i + batch_size]  
+
+          
+        y_pred, a1 = forward(X_batch)  
+
+          
+        loss = compute_loss(y_batch, y_pred)  
+
+       
+        dW1, db1, dW2, db2 = backward(X_batch, y_batch, y_pred, a1)  
+
+      
+        W1 -= learning_rate * dW1  
+        b1 -= learning_rate * db1  
+        W2 -= learning_rate * dW2  
+        b2 -= learning_rate * db2  
+
+    print(f'Epoch {epoch + 1}/{epochs}, Loss: {loss:.4f}')  
+
+ 
+def accuracy(X, y):  
+    y_pred, _ = forward(X)  
+    return np.mean(np.argmax(y_pred, axis=1) == y)  
+
+print(f'Test Accuracy: {accuracy(X_test, y_test) * 100:.2f}%')
