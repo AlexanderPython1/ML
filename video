@@ -1,0 +1,41 @@
+import cv2  
+import numpy as np  
+from sklearn.model_selection import train_test_split  
+from sklearn.ensemble import GradientBoostingClassifier  
+from sklearn.linear_model import LogisticRegression  
+from sklearn.metrics import accuracy_score  
+ 
+video_path = ''  
+num_frames = 60
+ 
+def extract_frames(video_path, num_frames):  
+    cap = cv2.VideoCapture(video_path)  
+    frames = []  
+    for _ in range(num_frames):  
+        ret, frame = cap.read()  
+        if not ret:  
+            break  
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  
+        frames.append(gray_frame.flatten())  
+    cap.release()  
+    return np.array(frames)  
+  
+X = extract_frames(video_path, num_frames)  
+  
+y = np.random.randint(0, 2, num_frames)  
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  
+ 
+gb_model = GradientBoostingClassifier()  
+gb_model.fit(X_train, y_train)  
+y_pred_gb = gb_model.predict(X_test)  
+print(f"Accuracy of Gradient Boosting: {accuracy_score(y_test, y_pred_gb)}") 
+
+l1_model = LogisticRegression(penalty='l1', solver='liblinear')   
+l1_model.fit(X_train, y_train)  
+y_pred_l1 = l1_model.predict(X_test)  
+print(f"Accuracy with L1 Regularization: {accuracy_score(y_test, y_pred_l1)}")  
+
+l2_model = LogisticRegression(penalty='l2', solver='liblinear')  
+l2_model.fit(X_train, y_train)  
+y_pred_l2 = l2_model.predict(X_test)  
+print(f"Accuracy with L2 Regularization: {accuracy_score(y_test, y_pred_l2)}")
