@@ -1,0 +1,51 @@
+import os  
+import subprocess  
+import numpy as np  
+import torch  
+import torchvision.transforms as transforms  
+from torchvision import models  
+from PIL import Image  
+  
+video_path = '' 
+output_dir = ''  
+num_frames = 10 
+
+os.makedirs(output_dir, exist_ok=True)  
+
+def extract_frames(video_path, output_dir, num_frames):   
+    command = [  
+        'ffmpeg',  
+        '-i', video_path,  
+        '-vf', f'select=not(mod(n\,{int(30 / num_frames)}))', 
+        '-vsync', 'vfr',  
+        f'{output_dir}/frame_%04d.jpg'  
+    ]  
+    subprocess.run(command)  
+
+extract_frames(video_path, output_dir, num_frames)  
+ 
+model = models.resnet50(pretrained=True)  
+model.eval()  
+  
+transform = transforms.Compose([  
+    transforms.Resize(256),  
+    transforms.CenterCrop(224),  
+    transforms.ToTensor(),  
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  
+])  
+def predict_image(image_path):  
+    image = Image.open(image_path).convert('RGB')  
+    image = transform(image).unsqueeze(0)   
+    with torch.no_grad():    
+        outputs = model(image)  
+    probabilities = torch.nn.functional.softmax(outputs[0], dim=0)  
+    return probabilities.numpy()  
+ 
+results = {}  
+for filename in os.listdir(output_dir):  
+    if filename.endswith(''):  
+        frame_path = os.path.join(output_dir, filename)  
+        probs = predict_image(frame_path)  
+        results[filename] = probs   
+np.save('maybe.py', results) 
+print("You have already saved in maybe.py! Congadulatins ")
