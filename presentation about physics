@@ -1,0 +1,79 @@
+import torch  
+import torch.nn as nn  
+import torch.optim as optim  
+from pptx import Presentation  
+from pptx.util import Inches  
+import requests  
+from bs4 import BeautifulSoup  
+
+INPUT_SIZE = 10  
+OUTPUT_SIZE = 1  
+class SimpleNN(nn.Module):  
+    def __init__(self):  
+        super(SimpleNN, self).__init__()  
+        self.fc = nn.Linear(INPUT_SIZE, OUTPUT_SIZE)  
+
+    def forward(self, x):  
+        return self.fc(x)  
+
+# Настройка устройства  
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
+model = SimpleNN().to(device)   
+optimizer = optim.SGD(model.parameters(), lr=0.01)  
+l1_lambda = 0.01  
+l2_lambda = 0.01  
+
+data = torch.randn(100, INPUT_SIZE).to(device)  
+targets = torch.randn(100, OUTPUT_SIZE).to(device)  
+ 
+for epoch in range(100):  
+    model.train()  
+    optimizer.zero_grad()  
+
+    output = model(data)  
+    loss = nn.MSELoss()(output, targets)   
+    l1_norm = sum(p.abs().sum() for p in model.parameters())  
+    l2_norm = sum(p.pow(2).sum() for p in model.parameters())  
+
+    loss += l1_lambda * l1_norm + l2_lambda * l2_norm  
+    loss.backward()  
+    optimizer.step()  
+    print(f'Epoch {epoch+1}: Loss = {loss.item()}')  
+
+def get_info(topic):  
+    search_url = f"https://www.google.com/search?q={topic}"  
+    headers = {'User-Agent': 'Mozilla/5.0'}  
+    response = requests.get(search_url, headers=headers)  
+    soup = BeautifulSoup(response.text, 'html.parser')  
+  
+    snippets = soup.find_all('span', class_='BNeawe s3v9rd AP7Wnd')  
+    if snippets:  
+        return ' '.join(snippet.get_text() for snippet in snippets[:3])   
+    return "Нет информации"  
+
+def create_presentation(slides_content):  
+    prs = Presentation()  
+    for title, content in slides_content:  
+        slide = prs.slides.add_slide(prs.slide_layouts[1])    
+        title_placeholder = slide.shapes.title  
+        content_placeholder = slide.shapes.placeholders[1]  
+
+        title_placeholder.text = title  
+        content_placeholder.text = content  
+
+    pptx_file = "физика.pptx"  
+    prs.save(pptx_file)  
+    print(f'Презентация сохранена как {pptx_file}')  
+  
+topic = "От Ползунова до Уатта: Эволюция первого теплового двигателя"  
+content1 = get_info(topic)  
+content2 = "Джеймс Уатт в значительной степени усовершенствовал паровую машину, внедрив новые идеи и технологии."  
+content3 = "Эти инновации изменили подход к использованию пара и заложили основы для современных тепловых машин."  
+ 
+slides_content = [  
+    ("Введение", content1),  
+    ("Усовершенствования Джеймса Уатта", content2),  
+    ("Влияние на современные технологии", content3)  
+]  
+
+create_presentation(slides_content)
