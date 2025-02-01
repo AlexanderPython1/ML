@@ -23,7 +23,7 @@ class Generator(nn.Module):
     def forward(self, z):  
         return self.model(z).view(-1, 1, 28, 28)  
 class Discriminator(nn.Module):  
-    def init(self):  
+    def __init__(self):  
         super(Discriminator, self).init()  
         self.model = nn.Sequential(  
             nn.Linear(784, 512),  
