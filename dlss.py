@@ -1,17 +1,4 @@
 
-"""
-RTX 5060 GPU Benchmark
-Синтетический тест CUDA, FP32/FP16 и обработки изображений.
-
-Запуск:
-    python rtx5060_benchmark.py
-
-Результат:
-    benchmark_results.csv
-
-Важно:
-    Это не настоящий DLSS benchmark.
-"""
 
 import csv
 import gc
@@ -24,7 +11,7 @@ import torch
 import torch.nn.functional as F
 
 
-# -------------------- Настройки --------------------
+
 
 WARMUP = 5
 REPEATS = 20
@@ -50,7 +37,7 @@ def synchronize():
 
 
 def benchmark_cuda(name, fn, repeats=REPEATS):
-    """Измерение времени CUDA-операции с прогревом."""
+    "Измерение времени CUDA-операции с прогревом."
     for _ in range(WARMUP):
         output = fn()
     synchronize()
@@ -108,7 +95,7 @@ def main():
     add_result("system", "CUDA version", 0, "text",
                str(torch.version.cuda))
 
-    # -------------------- 1. FP32 --------------------
+    
 
     print("\n[1/4] FP32 matrix multiplication")
     n = MATRIX_SIZE
@@ -119,8 +106,6 @@ def main():
     report_timing("compute", "FP32 matmul", timing,
                   f"matrix={n}x{n}")
 
-    # Теоретически выполнено 2*N^3 операций для одной матрицы.
-    # Это оценка вычислительной скорости данного теста, не паспортный TFLOPS.
     tflops = (2 * n**3) / (timing["mean_ms"] / 1000) / 1e12
     add_result("compute", "FP32 effective throughput",
                tflops, "TFLOP/s", "2*N^3 / elapsed time")
@@ -130,7 +115,7 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
 
-    # -------------------- 2. FP16 --------------------
+  
 
     print("\n[2/4] FP16 matrix multiplication")
     a16 = torch.randn((n, n), device=device, dtype=torch.float16)
@@ -149,14 +134,11 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
 
-    # -------------------- 3. Image processing --------------------
 
     print("\n[3/4] Image resize benchmark")
     print("Измеряется GPU-интерполяция, а не DLSS.")
 
     for width, height in IMAGE_SIZES:
-        # Имитация низкого внутреннего разрешения:
-        # приблизительно половина ширины и высоты.
         low_w = max(1, width // 2)
         low_h = max(1, height // 2)
 
@@ -192,12 +174,9 @@ def main():
         gc.collect()
         torch.cuda.empty_cache()
 
-    # -------------------- 4. Memory allocation / bandwidth proxy --------------------
 
     print("\n[4/4] GPU memory copy test")
 
-    # Используется массив 256 MiB; если памяти не хватает,
-    # уменьши размер до 64 или 128 MiB.
     num_elements = (256 * 1024**2) // 4
     src = torch.rand(num_elements, device=device, dtype=torch.float32)
     dst = torch.empty_like(src)
@@ -210,8 +189,6 @@ def main():
     report_timing("memory", "GPU device-to-device copy", timing,
                   "256 MiB payload")
 
-    # Минимальная оценка: размер одного буфера / время.
-    # Реальная передача читает src и пишет dst, то есть трафик выше.
     gb_per_sec = (src.numel() * src.element_size() / 1e9) / (
         timing["mean_ms"] / 1000
     )
@@ -225,7 +202,6 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
 
-    # -------------------- Save results --------------------
 
     with open("benchmark_results.csv", "w",
               newline="", encoding="utf-8-sig") as file:
