@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 device = "cuda"
 
-# Синтетический кадр 960x540
+
 image = torch.rand(1, 3, 540, 960, device=device)
 
 def upscale():
